@@ -1,0 +1,158 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      # Don't re-trigger when the workflow itself bumps the version commit
+      - '.github/workflows/**'
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Step 1: bump the patch version, commit & tag ─────────────────────────
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history so we can push the bump commit
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version in Program.cs
+        id: bump
+        run: |
+          FILE="Program.cs"
+          # Extract current version string e.g. "0.6.7"
+          CURRENT=$(grep -oP '(?<=VERSION = ")[^"]+' "$FILE")
+          echo "Current version: $CURRENT"
+
+          # Split into major.minor.patch
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          PATCH=$((PATCH + 1))
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW"
+
+          # Write it back
+          sed -i "s/VERSION = \"${CURRENT}\"/VERSION = \"${NEW}\"/" "$FILE"
+          echo "new_version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Program.cs
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+          git tag "v${{ steps.bump.outputs.new_version }}"
+          git push origin main --follow-tags
+
+  # ── Step 2: build for win-x64 and win-arm64 in parallel ──────────────────
+  build:
+    needs: version
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        rid: [ win-x64, win-arm64 ]
+    steps:
+      - name: Checkout (after version bump)
+        uses: actions/checkout@v4
+        with:
+          ref: main   # pick up the bumped commit
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish (${{ matrix.rid }})
+        run: |
+          dotnet publish RacingDSX.csproj `
+            -c Release `
+            -r ${{ matrix.rid }} `
+            -p:PublishSingleFile=true `
+            -p:SelfContained=true `
+            -p:PublishReadyToRun=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            --output publish/${{ matrix.rid }}
+
+      # Bundle the exe + README into a clean zip
+      - name: Create release archive (${{ matrix.rid }})
+        shell: pwsh
+        run: |
+          $rid   = "${{ matrix.rid }}"
+          $ver   = "${{ needs.version.outputs.new_version }}"
+          $dest  = "publish/$rid"
+          $zip   = "RacingDSX-${ver}-${rid}.zip"
+
+          # Copy README into the publish folder so it's in the zip
+          Copy-Item Readme.md "$dest\README.md" -Force
+
+          Compress-Archive -Path "$dest\*" -DestinationPath $zip
+          echo "ARTIFACT=$zip" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RacingDSX-${{ needs.version.outputs.new_version }}-${{ matrix.rid }}
+          path: RacingDSX-${{ needs.version.outputs.new_version }}-${{ matrix.rid }}.zip
+          retention-days: 7
+
+  # ── Step 3: create a GitHub Release and attach both zips ─────────────────
+  release:
+    needs: [ version, build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ needs.version.outputs.new_version }}
+          name: RacingDSX v${{ needs.version.outputs.new_version }}
+          artifacts: "artifacts/*.zip"
+          allowUpdates: true
+          body: |
+            ## RacingDSX v${{ needs.version.outputs.new_version }}
+
+            ### Supported games
+            - **Forza Horizon 6** (NEW)
+            - Forza Horizon 5
+            - Forza Horizon 4
+            - Forza Motorsport 7 / 8
+            - DiRT Rally 1 / 2
+
+            ---
+
+            ### Installation (fresh install)
+            1. Download the zip for your CPU architecture:
+               - **`RacingDSX-*-win-x64.zip`** – most desktop/laptop PCs (Intel or AMD)
+               - **`RacingDSX-*-win-arm64.zip`** – ARM-based Windows PCs (Surface Pro X, Snapdragon laptops)
+            2. Extract the zip to any folder (e.g. `C:\Program Files\RacingDSX\`).
+            3. Run **`RacingDSX.exe`** – allow any Windows firewall prompts.
+            4. Follow the in-app instructions or see the [README](https://github.com/Barnacules/RacingDSX#readme) for per-game setup.
+
+            ### Updating from a previous version
+            **Easiest:** let the app update itself.  
+            RacingDSX checks for updates on every launch. When a new version is available you will be prompted; click **"Update Now"** and the app will download, replace itself, and restart automatically.
+
+            **Manual update:**  
+            1. Download the new zip.
+            2. Extract and overwrite the existing `RacingDSX.exe` in your install folder.
+            3. Your `RacingDSX.json` settings file is kept separately and will **not** be affected.
+
+            ---
+
+            > **Requirements:** Windows 10/11 · [.NET 8 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) (only needed if you use the framework-dependent build; these self-contained releases include the runtime) · [DSX / DualSenseX](https://store.steampowered.com/app/1606210/DSX/)
+          token: ${{ secrets.GITHUB_TOKEN }}

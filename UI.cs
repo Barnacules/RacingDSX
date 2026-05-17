@@ -4,6 +4,7 @@ using RacingDSX.Properties;
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 
 //using System.Configuration;
 using System.Threading;
@@ -119,6 +120,16 @@ namespace RacingDSX
                 UpdateForzaConnectionStatus(true);
                 StartRacingDSXThread();
             }
+
+            // Add "Check for Updates" button to the status strip
+            AddUpdateCheckButton();
+
+            // Run a silent background update check after the window is shown
+            this.Shown += async (s, ev) =>
+            {
+                await Task.Delay(2000); // brief delay so the app is fully up
+                await UpdateChecker.CheckForUpdatesAsync(this, silent: true);
+            };
         }
 
         protected void startAppCheckThread()
@@ -353,6 +364,35 @@ namespace RacingDSX
             }
 
             SetupUI();
+        }
+
+        // ── Update Check ─────────────────────────────────────────────────────
+
+        private void AddUpdateCheckButton()
+        {
+            var updateButton = new ToolStripDropDownButton
+            {
+                Text            = "Check for Updates",
+                DisplayStyle    = ToolStripItemDisplayStyle.Text,
+                ForeColor       = System.Drawing.Color.White,
+                AutoToolTip     = false,
+                ShowDropDownArrow = false
+            };
+            updateButton.Click += async (s, e) =>
+            {
+                updateButton.Enabled = false;
+                updateButton.Text    = "Checking...";
+                try
+                {
+                    await UpdateChecker.CheckForUpdatesAsync(this, silent: false);
+                }
+                finally
+                {
+                    updateButton.Enabled = true;
+                    updateButton.Text    = "Check for Updates";
+                }
+            };
+            statusStrip1.Items.Add(updateButton);
         }
 
         #region UI Forms control

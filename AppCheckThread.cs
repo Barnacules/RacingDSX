@@ -132,11 +132,12 @@ namespace RacingDSX
 							forzaProcesses += Process.GetProcessesByName("forza_gaming.desktop.x64_release_final").Length; //Guess at name
 							forzaProcesses += Process.GetProcessesByName("forza_steamworks_release_final").Length; //Guess at name*/
 
-						// DSX = "DSX" or "DualSenseX"
-						DSX = Process.GetProcessesByName("DSX");
-						DSX_2 = Process.GetProcessesByName("DualsenseX");
+					// DSX = "DSX", "DualSenseX", or "DualSenseY" (WujekFoliarz's alternative)
+					DSX = Process.GetProcessesByName("DSX");
+					DSX_2 = Process.GetProcessesByName("DualsenseX");
+					Process[] DSX_3 = Process.GetProcessesByName("DualSenseY");
 
-						dsxReport.value = (DSX.Length + DSX_2.Length) > 0;
+					dsxReport.value = (DSX.Length + DSX_2.Length + DSX_3.Length) > 0;
 						//forzaReport.value = forzaProcesses > 0;
 
 						//forzaReport.value = true;

@@ -24,11 +24,9 @@ namespace RacingDSX.Config
             configData ??= ReadConfigFromDisk();
             configData ??= new Config();
             configData = AddDefaultProfiles(configData);
+            UpgradeConfig(configData);
             SaveConfig();
         }
-
-
-
 
         private static Config AddDefaultProfiles(Config config)
         {
@@ -53,19 +51,43 @@ namespace RacingDSX.Config
                     GameType = GameTypes.Dirt
                 };
                 profile.throttleSettings.GripLossValue = 0.4f;
-                profile.executableNames.AddRange(new string[] { "drt", "dirtrally2"});
+                profile.executableNames.AddRange(new string[] { "drt", "dirtrally2" });
                 config.Profiles.Add("Dirt", profile);
             }
 
             return config;
         }
 
+        /// <summary>
+        /// Migrates existing saved configs forward when new fields or defaults are added.
+        /// Keeps backward compatibility — users upgrading from older versions won't lose settings.
+        /// </summary>
+        private static void UpgradeConfig(Config config)
+        {
+            // Ensure the Forza profile has ForzaHorizon6 (added in v0.6.8)
+            if (config.Profiles.ContainsKey("Forza"))
+            {
+                var forza = config.Profiles["Forza"];
+                if (!forza.executableNames.Contains("ForzaHorizon6", StringComparer.OrdinalIgnoreCase))
+                {
+                    forza.executableNames.Insert(0, "ForzaHorizon6");
+                }
+            }
+
+            // Ensure DSXIPs has at least the loopback entry
+            if (config.DSXIPs == null || config.DSXIPs.Count == 0)
+            {
+                config.DSXIPs = new List<string> { "127.0.0.1" };
+                config.SelectedDSXIP = 0;
+            }
+        }
+
         private static Config ReadConfigFromDisk()
         {
-
             try
-            {      
-                if (!File.Exists(configFilePath)) {
+            {
+                if (!File.Exists(configFilePath))
+                {
                     return null;
                 }
                 string jsonString = File.ReadAllText(configFilePath);
@@ -77,26 +99,26 @@ namespace RacingDSX.Config
             {
                 return null;
             }
-
         }
+
         private static void WriteConfigToDisk()
         {
             try
             {
-                string jsonString = JsonSerializer.Serialize(configData);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string jsonString = JsonSerializer.Serialize(configData, options);
                 File.WriteAllText(configFilePath, jsonString);
-            } catch (Exception)
+            }
+            catch (Exception)
             {
-
             }
         }
 
         public static void SaveConfig()
         {
             WriteConfigToDisk();
-
         }
-        
+
         public static Config GetConfig()
         {
             if (configData == null)

@@ -281,6 +281,9 @@ namespace RacingDSX
         {
             switch (value.type)
             {
+                case RacingDSXReportStruct.ReportType.HEARTBEAT:
+                    // Telemetry data is actively flowing — no UI action needed, just absorb it
+                    break;
                 case RacingDSXReportStruct.ReportType.VERBOSEMESSAGE:
                     Output(value.message);
                     break;
@@ -374,10 +377,13 @@ namespace RacingDSX
             {
                 Text            = "Check for Updates",
                 DisplayStyle    = ToolStripItemDisplayStyle.Text,
-                ForeColor       = System.Drawing.Color.White,
+                ForeColor       = System.Drawing.Color.White,  // white on navy status bar
                 AutoToolTip     = false,
                 ShowDropDownArrow = false
             };
+            // Ensure all existing status strip items also show white text on the navy bar
+            foreach (System.Windows.Forms.ToolStripItem item in statusStrip1.Items)
+                item.ForeColor = System.Drawing.Color.White;
             updateButton.Click += async (s, e) =>
             {
                 updateButton.Enabled = false;

@@ -25,7 +25,8 @@ namespace RacingDSX
             {
                 VERBOSEMESSAGE = 0,
                 NORACE = 1,
-                RACING = 2
+                RACING = 2,
+                HEARTBEAT = 3,
             }
 
             public enum RacingReportType : ushort
@@ -71,13 +72,13 @@ namespace RacingDSX
             {
                 this.verboseLevel = level;
                 this.type = ReportType.VERBOSEMESSAGE;
-                this.message = String.Empty;
+                this.message = msg;
             }
 
             public RacingDSXReportStruct(string msg)
             {
                 this.type = ReportType.VERBOSEMESSAGE;
-                this.message = String.Empty;
+                this.message = msg;
             }
 
             public ReportType type = 0;
@@ -168,10 +169,11 @@ namespace RacingDSX
         {
             senderClient = new UdpClient();
             var portNumber = settings.DSXPort;
+            var dsxIP = settings.ActiveDSXIP;
 
             if (progressReporter != null)
             {
-                progressReporter.Report(new RacingDSXReportStruct("DSX is using port " + portNumber + ". Attempting to connect.."));
+                progressReporter.Report(new RacingDSXReportStruct($"DSX is using {dsxIP}:{portNumber}. Attempting to connect.."));
             }
 
             if (!int.TryParse(portNumber.ToString(), out int portNum))
@@ -183,7 +185,16 @@ namespace RacingDSX
                 portNum = settings.DSXPort;
             }
 
-            endPoint = new IPEndPoint(IPAddress.Loopback, portNum);
+            if (!IPAddress.TryParse(dsxIP, out IPAddress ipAddress))
+            {
+                if (progressReporter != null)
+                {
+                    progressReporter.Report(new RacingDSXReportStruct($"Invalid DSX IP address '{dsxIP}', falling back to loopback."));
+                }
+                ipAddress = IPAddress.Loopback;
+            }
+
+            endPoint = new IPEndPoint(ipAddress, portNum);
 
             try
             {
@@ -337,9 +348,13 @@ namespace RacingDSX
                     if (resultBuffer == null)
                         continue;
 
+                    // Signal to the UI that live telemetry data is arriving
+                    progressReporter?.Report(new RacingDSXReportStruct(
+                        VerboseLevel.Off, RacingDSXReportStruct.ReportType.HEARTBEAT, ""));
+
                     if (settings.VerboseLevel > VerboseLevel.Limited && progressReporter != null)
                     {
-                        progressReporter.Report(new RacingDSXReportStruct("received Message from Forza!"));
+                        progressReporter.Report(new RacingDSXReportStruct("received Message from game!"));
                     }
 
                     if (!AdjustToBufferType(resultBuffer.Length))

@@ -1,4 +1,5 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/cosmii02/racingDSX/total)
+![GitHub release](https://img.shields.io/github/v/release/Barnacules/RacingDSX)
 
 Tested and confirmed to work with DSX v2 and v3.1
 
@@ -6,9 +7,89 @@ Tested and confirmed to work with DSX v2 and v3.1
 - Forza Horizon 6 (NEW)
 - Forza Horizon 5
 - Forza Horizon 4
-- Forza Motorsport 7
-- Forza Motorsport 8
+- Forza Motorsport 7 / 8
 - DiRT Rally 1 / 2
+
+---
+
+## Building Locally (Windows 11 x64)
+
+### Prerequisites
+
+| Requirement | Version | Download |
+|---|---|---|
+| .NET SDK | 8.0 or newer | https://dotnet.microsoft.com/en-us/download/dotnet/8.0 |
+| Git | any | https://git-scm.com/download/win |
+| Windows | 10 / 11 (x64 or ARM64) | — |
+
+> Visual Studio is **not** required. The SDK alone is sufficient.
+
+### Quick build (one command)
+
+Open **PowerShell** in the repository root and run:
+
+```powershell
+.\build.ps1
+```
+
+The script will:
+1. Verify your .NET SDK version
+2. Restore all NuGet packages
+3. Publish a **self-contained, single-file** `RacingDSX.exe` for Windows x64
+
+Output lands in:
+```
+build\win-x64\RacingDSX.exe
+```
+
+### Build script options
+
+```powershell
+# Standard release build (self-contained, ~170 MB, no runtime required to run)
+.\build.ps1
+
+# Debug build (faster compile, framework-dependent — .NET 8 runtime must be installed to run)
+.\build.ps1 -Configuration Debug
+
+# Release build without the "Press Enter to exit" prompt (useful in scripts)
+.\build.ps1 -NoPause
+```
+
+### Manual build commands
+
+If you prefer to run the dotnet CLI directly:
+
+```powershell
+# Restore packages
+dotnet restore
+
+# Release — self-contained single-file exe (matches GitHub CI output)
+dotnet publish RacingDSX.csproj -c Release -r win-x64 `
+    -p:PublishSingleFile=true `
+    -p:SelfContained=true `
+    -p:PublishReadyToRun=true `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    --output build\win-x64
+
+# Debug — framework-dependent (requires .NET 8 runtime installed)
+dotnet build RacingDSX.csproj -c Debug -r win-x64 --output build\win-x64-debug
+```
+
+### Opening in Visual Studio / Rider
+
+Just open `RacingDSX.sln` — all dependencies restore automatically on first build.
+
+### Running after a local build
+
+```powershell
+.\build\win-x64\RacingDSX.exe
+```
+
+The app stores its settings in `RacingDSX.json` next to the executable, so running from the build output folder keeps your configuration isolated from any installed copy.
+
+> **Note for running pre-built releases:** The release zips from the [Releases page](https://github.com/Barnacules/RacingDSX/releases) are already self-contained — no separate .NET runtime install is needed to *run* those builds. The .NET SDK is only required when *building* from source.
+
+---
 
 🔺🔺 It is REQUIRED to install .NET8 for racingDSX to work at all!🔺🔺           
 Download .NET8.0 from the link here: https://dotnet.microsoft.com/en-us/download

@@ -410,7 +410,7 @@ namespace RacingDSX
                 case 331: // FM8 dash
                     FMData.BufferOffset = 0;
                     return true;
-                case 324: // FH4
+                case 324: // FH4, FH5, FH6
                     FMData.BufferOffset = 12;
                     return true;
                 default:

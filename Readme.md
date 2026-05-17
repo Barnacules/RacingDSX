@@ -2,10 +2,39 @@
 
 Tested and confirmed to work with DSX v2 and v3.1
 
+## Supported Games
+- Forza Horizon 6 (NEW)
+- Forza Horizon 5
+- Forza Horizon 4
+- Forza Motorsport 7
+- Forza Motorsport 8
+- DiRT Rally 1 / 2
+
 🔺🔺 It is REQUIRED to install .NET8 for racingDSX to work at all!🔺🔺           
 Download .NET8.0 from the link here: https://dotnet.microsoft.com/en-us/download
 
 
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+# Step by step instructions for Forza Horizon 6:
+1. Download latest version of RacingDSX from releases https://github.com/Barnacules/RacingDSX/releases
+2. Extract the zip file to a folder (for example, the desktop)
+3. Run RacingDSX.exe
+4. Allow firewall prompts if they show up
+5. Open DSX
+6. Launch Forza Horizon 6
+7. In-game, go to **Settings > HUD and Gameplay**
+8. Enable **Data Out** and set **Data Out IP** to `127.0.0.1` and **Data Out IP Port** to `5300`
+9. In DSX, make sure UDP is enabled: go to **Settings > Controller > Networking**. UDP must be enabled and listening on port `6969`
+
+> **Note for Microsoft Store version of Forza Horizon 6:** If telemetry data is not being received, you may need to enable UDP loopback. Run the following command in PowerShell as Administrator:
+> ```
+> CheckNetIsolation LoopbackExempt -a -n="Microsoft.ForzaHorizon6_8wekyb3d8bbwe"
+> ```
+> Alternatively, install the [Windows 8 AppContainer Loopback Utility](https://telerik-fiddler.s3.amazonaws.com/fiddler/addons/enableloopbackutility.exe) and check Forza Horizon 6 in the list. The Steam version of FH6 does **not** require this step.
+
+-----------------------------------------------------------------------------------------------------------------------------------------
 
 # Setting up DiRT Rally 1 / 2 for UDP Connection:
 1. Go to `C:\Users\<USER>\Documents\My Games\DiRT Rally X.0\hardwaresettings`;
@@ -36,7 +65,7 @@ Forza Motorsport 7: I do not have FM7 to get the ID, sorry :)
 -----------------------------------------------------------------------------------------------------------------------------------------
 
 Step by step instructions for Forza Horizon 5:
-1. Download latest version of RacingDSX from releases https://github.com/cosmii02/RacingDSX/releases
+1. Download latest version of RacingDSX from releases https://github.com/Barnacules/RacingDSX/releases
 2. extract the zip file to a folder (For example desktop)
 3. Run RacingDSX exe
 ![image](https://user-images.githubusercontent.com/27782168/183417053-33676d94-f137-454b-ad7b-78066f71f6d2.png)
